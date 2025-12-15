@@ -151,5 +151,3 @@ if __name__ == "__main__":
     wa_notifier = WhatsAppNotifier()
     checkout_full = CheckoutService(CreditCardProcessor(), [email_notifier, sms_notifier, wa_notifier])
     checkout_full.run_checkout(order5)
-
-
