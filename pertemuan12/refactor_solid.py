@@ -11,35 +11,12 @@ logging.basicConfig(
 # Tambahkan logger untuk kelas yang akan kita gunakan
 LOGGER = logging.getLogger('Checkout')
 
-# Model Sederhana
 @dataclass
 class Order:
     customer_name: str
     total_price: float
     status: str = "open"
-    
-# === KODE BURUK (SEBELUM REFACTOR) ===
-class OrderManager: # Melanggar SRP, OCP, DIP
-    def process_checkout(self, order: Order, payment_method: str):
-        print(f"Memulai checkout untuk {order.customer_name}...")
-        
-        # LOGIKA PEMBAYARAN (Pelanggaran OCP/DIP)
-        if payment_method == "credit_card":
-            # Logika detail implementasi hardcoded di sini
-            print("Processing Credit Card...")
-        elif payment_method == "bank_transfer":
-            # Logika detail implementasi harcoded di sini
-            print("Processing Bank Transfer...")
-        else:
-            print("Metode tidak valid.")
-            return False
-        
-        # LOGIKA NOTIFIKASI (Pelanggaran SRP)
-        print(f"Mengirim notifikasi ke {order.customer_name}...")
-        order.status = "paid"
-        return True
-    
-# --- ABSTRAKSI (Kontrak untuk OCP/DIP) ---
+
 class IPaymentProcessor(ABC):
     """Kontrak: Semua prosesor pembayaran hrus punya method 'process'."""
     @abstractmethod
@@ -47,12 +24,11 @@ class IPaymentProcessor(ABC):
         pass
     
 class INotificationService(ABC):
-    """Kntrak: Semua layanan notifikasi harus punya method 'send'."""
+    """Kontrak: Semua layanan notifikasi harus punya method 'send'."""
     @abstractmethod
     def send(self, order: Order):
         pass
     
-#  --- IMPLEMENTASI KONKRIT (Plug-in) ---
 class CreditCardProcessor(IPaymentProcessor):
     def process(self, order: Order) -> bool:
         print("Payment: Memproses Kartu Kredit.")
@@ -62,7 +38,6 @@ class EmailNotifier(INotificationService):
     def send(self, order: Order):
         print(f"Notif: Mengirim email konfirmasi ke {order.customer_name}.")
         
-# --- KELAS KOORDINATOR (SRP & DIP) ---
 class CheckoutService: # Tanggung jawab tunggal: Mengkoordinasikan Checkout
     """
     Kelas high-level untuk mengkoordinasi proses transaksi pembayaran.
@@ -106,18 +81,14 @@ class CheckoutService: # Tanggung jawab tunggal: Mengkoordinasikan Checkout
 
         pass
     
-# --- PROGRAM UTAMA --
-# Setup Depedencies
 andi_order = Order("Andi", 500000)
 email_service = EmailNotifier()
 
-# 1. Inject implementasi Credit Card
 cc_processor = CreditCardProcessor()
 checkout_cc = CheckoutService(payment_processor=cc_processor, notifier=email_service)
 print("--- Skenario 1: Credit Card ---")
 checkout_cc.run_checkout(andi_order)
 
-# 2. Pembuktian OCP: Menambahkan Metode Pembayaran QRIS (Tanpa Mengubah CheckoutService)
 class QrisProcessor(IPaymentProcessor):
     def process(self, order: Order) -> bool:
         print("Payment: Memproses Qris.")
@@ -126,7 +97,6 @@ class QrisProcessor(IPaymentProcessor):
 budi_order = Order("Budi", 100000)
 qris_processor = QrisProcessor()
 
-# Inject implementasi QRIS yang baru dibuat
 checkout_qris = CheckoutService(payment_processor=qris_processor, notifier=email_service)
 print("\n--- Skenario 2: Pembuktian OCP (QRIS) ---")
 checkout_qris.run_checkout(budi_order)
